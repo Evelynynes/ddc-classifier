@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDC CLASSIFIER</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+  @font-face {
+    font-family: 'GamjaFlower';
+    src: url('GamjaFlower-Regular.ttf') format('truetype');
+    font-weight: normal; font-style: normal;
+  }
+  :root{
+    --bg:#f0fafa; --panel:#ffffff; --border:#b2dede; --border2:#d4eeee;
+    --accent:#0abab5; --accent2:#008080; --text:#1a3333; --text-dim:#7aadad;
+    --correct:#0abab5; --wrong:#c0605a;
+    --font:'Gamja Flower','GamjaFlower','Noto Sans KR',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+
+  /* HEADER */
+  header{width:100%;max-width:660px;padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;}
+  .logo{font-size:11px;letter-spacing:0.05em;color:var(--text-dim);line-height:1.8;}
+  .logo span{display:block;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:0.05em;}
+  .lang-toggle{display:flex;gap:2px;background:var(--border2);border-radius:20px;padding:3px;}
+  .lang-btn{background:none;border:none;color:var(--text-dim);font-family:var(--font);font-size:13px;padding:5px 12px;cursor:pointer;border-radius:18px;transition:all 0.2s;}
+  .lang-btn.active{background:var(--accent);color:#fff;font-weight:700;}
+
+  main{width:100%;max-width:660px;padding:18px 24px;flex:1;}
+  .screen{display:none;}.screen.active{display:block;animation:fadeIn 0.2s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+  /* HOME */
+  .home-title{font-size:13px;color:var(--text-dim);margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border2);}
+  .section-label{font-size:13px;color:var(--text-dim);margin-bottom:10px;}
+  .two-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .card{background:var(--panel);border:2px solid var(--border2);border-radius:12px;padding:16px 14px;cursor:pointer;transition:all 0.2s;}
+  .card:hover,.card.selected{border-color:var(--accent);}
+  .card.selected{background:#e6fafa;}
+  .card-badge{font-size:10px;letter-spacing:0.05em;color:var(--accent);margin-bottom:5px;}
+  .card-name{font-size:16px;font-weight:700;margin-bottom:3px;}
+  .card-desc{font-size:13px;color:var(--text-dim);line-height:1.5;}
+  .q-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .q-btn{background:var(--panel);border:2px solid var(--border2);color:var(--text-dim);font-family:var(--font);font-size:15px;padding:8px 18px;border-radius:20px;cursor:pointer;transition:all 0.2s;}
+  .q-btn:hover,.q-btn.selected{border-color:var(--accent);color:var(--accent);}
+  .start-btn{width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--font);font-size:17px;font-weight:700;padding:16px;border-radius:12px;cursor:pointer;transition:opacity 0.2s;}
+  .start-btn:hover{opacity:0.85;}
+
+  /* GAME */
+  .progress-bar-wrap{height:6px;background:var(--border2);border-radius:3px;margin-bottom:16px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.4s ease;}
+  .game-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .q-num{font-size:13px;color:var(--text-dim);}
+  .score-row{display:flex;gap:14px;}
+  .score-item{font-size:13px;color:var(--text-dim);}
+  .score-item .val{color:var(--accent);font-weight:700;}
+
+  /* 책 카드 */
+  .book-card{background:var(--panel);border:2px solid var(--border2);border-radius:12px;padding:18px;margin-bottom:14px;}
+  .book-lbl{font-size:12px;color:var(--text-dim);margin-bottom:10px;}
+  .book-inner{display:flex;gap:14px;align-items:flex-start;}
+  .book-cover{width:72px;flex-shrink:0;border-radius:6px;overflow:hidden;background:var(--border2);aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;}
+  .book-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+  .book-cover-placeholder{font-size:28px;color:var(--text-dim);}
+  .book-info{flex:1;min-width:0;}
+  .book-title{font-size:18px;font-weight:700;line-height:1.3;margin-bottom:3px;}
+  .book-title-ko{font-size:15px;color:var(--accent);margin-bottom:4px;}
+  .book-author{font-size:12px;color:var(--text-dim);font-style:italic;margin-bottom:11px;}
+  .book-desc{font-size:14px;line-height:1.7;border-left:3px solid var(--border2);padding-left:11px;color:#3a6666;}
+
+  /* 단계 진행 표시 */
+  .steps-wrap{margin-bottom:12px;display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;overflow-x:auto;}
+  .steps-wrap::-webkit-scrollbar{display:none;}
+  .step-done{background:#e6fafa;border:2px solid var(--accent);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;gap:4px;animation:fadeIn 0.3s ease;flex-shrink:0;min-width:90px;text-align:center;}
+  .step-done-num{font-size:22px;font-weight:700;color:var(--accent);}
+  .step-done-label{font-size:10px;color:var(--text-dim);}
+  .step-done-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;}
+  .step-done-check{font-size:16px;color:var(--accent);}
+
+  /* 현재 단계 질문 */
+  .step-question{background:var(--panel);border:2px solid var(--border2);border-radius:12px;padding:16px 14px;margin-bottom:12px;}
+  .step-hint{font-size:14px;color:var(--text-dim);margin-bottom:12px;}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .choice-btn{background:var(--panel);border:2px solid var(--border2);color:var(--text);font-family:var(--font);font-size:14px;padding:12px 13px;border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:left;line-height:1.4;}
+  .choice-btn:hover:not(:disabled){border-color:var(--accent);background:#e6fafa;}
+  .choice-btn.correct{border-color:var(--correct);background:#e6fafa;color:var(--correct);}
+  .choice-btn.wrong{border-color:var(--wrong);background:#fdf0ef;color:var(--wrong);}
+  .choice-btn:disabled{cursor:default;}
+  .choice-num{font-size:11px;color:var(--text-dim);display:block;margin-bottom:2px;}
+
+  /* 오답 설명 */
+  .wrong-explain{background:#fdf0ef;border:2px solid var(--wrong);border-radius:10px;padding:14px 16px;margin-top:10px;display:none;animation:fadeIn 0.3s ease;}
+  .wrong-explain.show{display:block;}
+  .wrong-explain-title{font-size:15px;font-weight:700;color:var(--wrong);margin-bottom:6px;}
+  .wrong-explain-body{font-size:14px;line-height:1.7;color:#7a3030;}
+  .wrong-explain-answer{font-size:15px;font-weight:700;color:var(--wrong);margin-top:8px;padding-top:8px;border-top:1px solid #f0c0be;}
+
+  .next-btn{width:100%;background:none;border:2px solid var(--border2);color:var(--text-dim);font-family:var(--font);font-size:15px;padding:13px;border-radius:12px;cursor:pointer;transition:all 0.2s;display:none;margin-top:10px;}
+  .next-btn.show{display:block;}
+  .next-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* RESULT */
+  .result-wrap{text-align:center;padding:14px 0;}
+  .result-label{font-size:13px;color:var(--text-dim);margin-bottom:10px;}
+  .result-score{font-size:68px;font-weight:700;color:var(--accent);line-height:1;margin-bottom:5px;}
+  .result-total{font-size:14px;color:var(--text-dim);margin-bottom:28px;}
+  .result-bars{margin-bottom:24px;text-align:left;}
+  .rbi{display:grid;grid-template-columns:50px 1fr 28px;gap:8px;align-items:center;margin-bottom:7px;}
+  .rbi-num{font-size:12px;color:var(--text-dim);}
+  .rbi-bar-wrap{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;}
+  .rbi-bar{height:100%;border-radius:3px;transition:width 0.8s ease;}
+  .rbi-bar.hit{background:var(--correct);}.rbi-bar.miss{background:var(--wrong);}
+  .rbi-mark{font-size:13px;text-align:right;}
+  .rbi-mark.hit{color:var(--correct);}.rbi-mark.miss{color:var(--wrong);}
+  .result-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .retry-btn{background:var(--accent);border:none;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;padding:14px;border-radius:12px;cursor:pointer;transition:opacity 0.2s;}
+  .retry-btn:hover{opacity:0.85;}
+  .home-btn{background:none;border:2px solid var(--border2);color:var(--text-dim);font-family:var(--font);font-size:15px;padding:14px;border-radius:12px;cursor:pointer;transition:all 0.2s;}
+  .home-btn:hover{border-color:var(--accent);color:var(--accent);}
+  hr.div{border:none;border-top:1px solid var(--border2);margin:18px 0;}
+  footer{width:100%;max-width:660px;padding:12px 24px 22px;font-size:12px;color:var(--text-dim);border-top:1px solid var(--border2);display:flex;justify-content:space-between;}
+  @media(max-width:480px){.two-grid,.choices,.result-btns{grid-template-columns:1fr;}.result-score{font-size:52px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span>DDC</span>CLASSIFIER</div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('ko')" id="btn-ko">한국어</button>
+    <button class="lang-btn" onclick="setLang('en')" id="btn-en">ENG</button>
+    <button class="lang-btn" onclick="setLang('mn')" id="btn-mn">МОН</button>
+  </div>
+</header>
+<main>
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <p class="home-title" id="txt-subtitle">DDC 분류 실습 게임</p>
+    <p class="section-label" id="txt-mode-label">// 게임 모드</p>
+    <div class="two-grid">
+      <div class="card selected" id="card-mode-drill" onclick="selectMode('drill')">
+        <div class="card-badge">DRILL</div>
+        <div class="card-name" id="txt-mode-drill-name">단계별 분류</div>
+        <div class="card-desc" id="txt-mode-drill-desc">주류 → 강 → 요목<br>단계적으로 좁혀가기</div>
+      </div>
+      <div class="card" id="card-mode-quick" onclick="selectMode('quick')">
+        <div class="card-badge">QUICK</div>
+        <div class="card-name" id="txt-mode-quick-name">바로 선택</div>
+        <div class="card-desc" id="txt-mode-quick-desc">책 보고 번호<br>한 번에 고르기</div>
+      </div>
+    </div>
+    <p class="section-label" id="txt-qcount-label">// 문제 수</p>
+    <div class="q-btns">
+      <button class="q-btn" onclick="selectQ(3)">3</button>
+      <button class="q-btn selected" onclick="selectQ(5)">5</button>
+      <button class="q-btn" onclick="selectQ(10)">10</button>
+    </div>
+    <button class="start-btn" onclick="startGame()" id="txt-start">▶ 게임 시작</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+    <div class="game-meta">
+      <span class="q-num" id="q-counter">Q 1 / 5</span>
+      <div class="score-row">
+        <span class="score-item"><span id="lbl-correct">정답</span> <span class="val" id="score-correct">0</span></span>
+        <span class="score-item"><span id="lbl-streak">연속</span> <span class="val" id="score-streak">0</span></span>
+      </div>
+    </div>
+    <!-- 책 카드 -->
+    <div class="book-card" id="book-card"></div>
+    <!-- 확정된 단계들 -->
+    <div class="steps-wrap" id="steps-wrap"></div>
+    <!-- 현재 단계 선택지 -->
+    <div class="step-question" id="step-question">
+      <div class="step-hint" id="step-hint"></div>
+      <div class="choices" id="choices"></div>
+      <div class="wrong-explain" id="wrong-explain">
+        <div class="wrong-explain-title" id="we-title">❌ 오답</div>
+        <div class="wrong-explain-body" id="we-body"></div>
+        <div class="wrong-explain-answer" id="we-answer"></div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextStep()">다음 →</button>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="result-wrap">
+      <p class="result-label" id="txt-result-label">결과</p>
+      <div class="result-score" id="result-score">0</div>
+      <div class="result-total" id="result-total">/ 5</div>
+      <hr class="div">
+      <div class="result-bars" id="result-bars"></div>
+      <div class="result-btns">
+        <button class="retry-btn" onclick="retryGame()" id="txt-retry">▶ 다시하기</button>
+        <button class="home-btn" onclick="goHome()" id="txt-home">⌂ 홈으로</button>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>DDC 23rd Edition</span>
+  <span id="footer-credit">도서관 분류 실습 게임</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// STRINGS
+// ═══════════════════════════════════════
+const S = {
+  ko:{subtitle:"DDC 분류 실습 게임",modeLabel:"// 게임 모드",modeDrillName:"단계별 분류",modeDrillDesc:"주류 → 강 → 요목\n단계적으로 좁혀가기",modeQuickName:"바로 선택",modeQuickDesc:"책 보고 번호\n한 번에 고르기",qcountLabel:"// 문제 수",start:"▶ 게임 시작",correct:"정답",streak:"연속",resultLabel:"결과",retry:"▶ 다시하기",home:"⌂ 홈으로",footer:"도서관 분류 실습 게임",resultSuffix:"문제 중",bookLbl:"📚 BOOK",hintClass:"→ 이 책의 주류(000~900)를 고르세요",hintDiv:"→ 강(Division)을 고르세요",hintSec:"→ 요목(Section)을 고르세요",hintQuick:"→ 이 책의 DDC 요목 번호를 고르세요",stepLabelClass:"주류",stepLabelDiv:"강",stepLabelSec:"요목",wrongTitle:"❌ 오답",nextBtn:"다음 →",nextBtnFinal:"다음 문제 →"},
+  en:{subtitle:"DDC Classification Practice",modeLabel:"// GAME MODE",modeDrillName:"Step-by-Step",modeDrillDesc:"Class → Division → Section\nNarrow it down",modeQuickName:"Quick Pick",modeQuickDesc:"Pick the number\nall at once",qcountLabel:"// QUESTIONS",start:"▶ START GAME",correct:"Correct",streak:"Streak",resultLabel:"RESULT",retry:"▶ RETRY",home:"⌂ HOME",footer:"Library Classification Practice",resultSuffix:"questions",bookLbl:"📚 BOOK",hintClass:"→ Choose the main class (000–900)",hintDiv:"→ Choose the division",hintSec:"→ Choose the section",hintQuick:"→ Choose the DDC section number",stepLabelClass:"Class",stepLabelDiv:"Division",stepLabelSec:"Section",wrongTitle:"❌ Wrong",nextBtn:"Next →",nextBtnFinal:"Next Question →"},
+  mn:{subtitle:"DDC ангиллын дадлагын тоглоом",modeLabel:"// ТОГЛООМЫН ГОРИМ",modeDrillName:"Алхам алхмаар",modeDrillDesc:"Анги → Хэсэг → Дэд хэсэг\nШатлан сонгох",modeQuickName:"Шууд сонгох",modeQuickDesc:"Номыг харж\nдугаарыг нэг дор сонгох",qcountLabel:"// АСУУЛТЫН ТОО",start:"▶ ТОГЛООМ ЭХЛЭХ",correct:"Зөв",streak:"Дараалал",resultLabel:"ҮР ДҮН",retry:"▶ ДАХИН ТОГЛОХ",home:"⌂ НҮҮР",footer:"Номын сангийн ангиллын дадлагын тоглоом",resultSuffix:"асуултаас",bookLbl:"📚 НОМ",hintClass:"→ Үндсэн ангиллыг (000–900) сонгоно уу",hintDiv:"→ Хэсгийг сонгоно уу",hintSec:"→ Дэд хэсгийг сонгоно уу",hintQuick:"→ DDC дэд хэсгийн дугаарыг сонгоно уу",stepLabelClass:"Үндсэн анги",stepLabelDiv:"Хэсэг",stepLabelSec:"Дэд хэсэг",wrongTitle:"❌ Буруу",nextBtn:"Дараах →",nextBtnFinal:"Дараагийн асуулт →"}
+};
+
+// ═══════════════════════════════════════
+// DDC 800번대 완전 데이터
+// { num, en, ko, mn, reason_ko, reason_en, reason_mn }
+// reason = 이 분류에 속하는 이유 설명
+// ═══════════════════════════════════════
+const DDC_ALL = {
+  // ── 000 총류 ──
+  "000":{en:"Computer Science, Information & General Works",ko:"총류",mn:"Ерөнхий бүлэг",reason_ko:"000번대는 컴퓨터과학·정보학·도서관학·저널리즘 등 지식 전반을 다루는 주류입니다.",reason_en:"000s covers computer science, information, library science, and general knowledge.",reason_mn:"000-аад нь компьютерийн шинжлэх ухаан, мэдээлэл, номын сан судлал зэргийг хамардаг."},
+  "010":{en:"Bibliographies",ko:"서지학",mn:"Номзүй судлал",reason_ko:"010은 도서 목록·서지 등 문헌 기술을 다룹니다.",reason_en:"010 covers bibliographies and catalogs of books.",reason_mn:"010 нь номзүй судлал, номын каталогийг хамардаг."},
+  "020":{en:"Library & Information Sciences",ko:"문헌정보학",mn:"Номын сан судлал",reason_ko:"020은 도서관 운영·정보 서비스 전반을 다룹니다.",reason_en:"020 covers library management and information services.",reason_mn:"020 нь номын сангийн удирдлага, мэдээллийн үйлчилгээг хамардаг."},
+  "030":{en:"General Encyclopedic Works",ko:"백과사전",mn:"Нэвтэрхий толь",reason_ko:"030은 다양한 주제를 망라하는 백과사전류입니다.",reason_en:"030 covers general encyclopedias spanning multiple subjects.",reason_mn:"030 нь олон сэдвийг хамарсан нэвтэрхий толь бичгүүдийг ангилдаг."},
+  "050":{en:"General Serial Publications",ko:"연속간행물",mn:"Цуврал хэвлэл",reason_ko:"050은 정기간행물·잡지 등 연속 출판물입니다.",reason_en:"050 covers magazines, journals, and other serial publications.",reason_mn:"050 нь сэтгүүл, тогтмол хэвлэлүүдийг ангилдаг."},
+  "060":{en:"General Organizations & Museology",ko:"단체·박물관학",mn:"Байгууллага ба музей судлал",reason_ko:"060은 일반 단체 및 박물관학을 다룹니다.",reason_en:"060 covers general organizations and museum studies.",reason_mn:"060 нь ерөнхий байгууллага ба музей судлалыг хамардаг."},
+  "070":{en:"News Media, Journalism & Publishing",ko:"저널리즘·출판",mn:"Сэтгүүл зүй ба хэвлэл",reason_ko:"070은 신문·방송·출판 등 미디어를 다룹니다.",reason_en:"070 covers journalism, newspapers, and publishing.",reason_mn:"070 нь сэтгүүл зүй, хэвлэл мэдээллийн хэрэгслийг хамардаг."},
+  "080":{en:"General Collections",ko:"일반 전집",mn:"Ерөнхий цуглуулга",reason_ko:"080은 여러 주제를 아우르는 일반 전집·선집입니다.",reason_en:"080 covers general collections and anthologies.",reason_mn:"080 нь олон сэдвийн ерөнхий цуглуулгуудыг ангилдаг."},
+  "090":{en:"Manuscripts & Rare Books",ko:"필사본·희귀본",mn:"Гар бичмэл ба ховор ном",reason_ko:"090은 필사본·고문서·희귀 서적을 다룹니다.",reason_en:"090 covers manuscripts, rare books, and ancient documents.",reason_mn:"090 нь гар бичмэл, ховор ном, эртний баримт бичгүүдийг хамардаг."},
+  // ── 100 철학 ──
+  "100":{en:"Philosophy & Psychology",ko:"철학 및 심리학",mn:"Философи ба сэтгэл судлал",reason_ko:"100번대는 철학·심리학·윤리학·논리학 등 인간의 사유를 다루는 주류입니다.",reason_en:"100s covers philosophy, psychology, ethics, and logic.",reason_mn:"100-аад нь философи, сэтгэл судлал, ёс зүй, логикийг хамардаг."},
+  "110":{en:"Metaphysics",ko:"형이상학",mn:"Метафизик",reason_ko:"110은 존재·실재·시간·공간 등 근본 원리를 탐구하는 형이상학입니다.",reason_en:"110 covers metaphysics — the study of existence, reality, time, and space.",reason_mn:"110 нь оршин байх, бодит байдал, цаг хугацааны тухай үндсэн асуудлыг судалдаг."},
+  "120":{en:"Epistemology",ko:"인식론",mn:"Танин мэдэхүй судлал",reason_ko:"120은 지식의 본질과 한계를 탐구하는 인식론입니다.",reason_en:"120 covers epistemology — the theory of knowledge.",reason_mn:"120 нь мэдлэгийн мөн чанар, хязгаарыг судалдаг."},
+  "130":{en:"Parapsychology & Occultism",ko:"초심리학·오컬트",mn:"Парапсихологи",reason_ko:"130은 초감각적 지각·신비주의 등 초심리학 분야입니다.",reason_en:"130 covers parapsychology, occultism, and supernatural phenomena.",reason_mn:"130 нь параnormal үзэгдэл, мистицизмийг судалдаг."},
+  "140":{en:"Philosophical Schools of Thought",ko:"철학 학파",mn:"Философийн сургуулиуд",reason_ko:"140은 실존주의·경험주의·관념론 등 철학 학파를 다룹니다.",reason_en:"140 covers philosophical movements like existentialism and empiricism.",reason_mn:"140 нь экзистенциализм, эмпиризм зэрэг философийн урсгалуудыг хамардаг."},
+  "150":{en:"Psychology",ko:"심리학",mn:"Сэтгэл судлал",reason_ko:"150은 인간 행동·인지·감정을 과학적으로 연구하는 심리학입니다.",reason_en:"150 covers the scientific study of human behavior, cognition, and emotion.",reason_mn:"150 нь хүний зан үйл, танин мэдэхүй, сэтгэл хөдлөлийг шинжлэх ухааны үүднээс судалдаг."},
+  "160":{en:"Philosophical Logic",ko:"철학적 논리학",mn:"Философийн логик",reason_ko:"160은 논증·추론의 원리를 다루는 논리학입니다.",reason_en:"160 covers the principles of reasoning and argumentation.",reason_mn:"160 нь дүгнэлт, нотолгооны зарчмуудыг судалдаг."},
+  "170":{en:"Ethics",ko:"윤리학",mn:"Ёс зүй",reason_ko:"170은 도덕적 원칙·선악·의무 등을 다루는 윤리학입니다.",reason_en:"170 covers moral philosophy, ethics, and questions of right and wrong.",reason_mn:"170 нь ёс суртахуун, сайн муугийн тухай философийн судалгааг хамардаг."},
+  "180":{en:"Ancient, Medieval & Eastern Philosophy",ko:"고대·중세·동양철학",mn:"Эртний ба дорнын философи",reason_ko:"180은 소크라테스·공자 등 고대·중세·동양 철학을 다룹니다.",reason_en:"180 covers ancient Greek, medieval, and Eastern philosophy.",reason_mn:"180 нь Сократ, Конфуци зэрэг эртний, дундад зуун ба дорнын философийг хамардаг."},
+  "190":{en:"Modern Western Philosophy",ko:"근현대 서양철학",mn:"Орчин үеийн баруун философи",reason_ko:"190은 칸트·헤겔·니체 등 근현대 서양 철학을 다룹니다.",reason_en:"190 covers modern Western philosophy including Kant, Hegel, and Nietzsche.",reason_mn:"190 нь Кант, Гегель, Ницше зэрэг орчин үеийн баруун философийг хамардаг."},
+  // ── 200 종교 ──
+  "200":{en:"Religion",ko:"종교",mn:"Шашин",reason_ko:"200번대는 세계의 종교·신학·신앙을 다루는 주류입니다.",reason_en:"200s covers world religions, theology, and religious practice.",reason_mn:"200-аад нь дэлхийн шашин, теологи, шүтлэг бишрэлийг хамардаг."},
+  "210":{en:"Philosophy & Theory of Religion",ko:"종교철학",mn:"Шашны философи",reason_ko:"210은 신의 존재 증명·종교 경험 등 종교철학을 다룹니다.",reason_en:"210 covers the philosophy of religion and arguments for/against God.",reason_mn:"210 нь шашны философи, Бурханы оршин байх тухай маргааныг хамардаг."},
+  "220":{en:"Bible",ko:"성경",mn:"Библи",reason_ko:"220은 구약·신약 성경 및 성경 해석학을 다룹니다.",reason_en:"220 covers the Bible, its text, and biblical interpretation.",reason_mn:"220 нь Библийн текст ба тайлбарыг хамардаг."},
+  "230":{en:"Christian Theology",ko:"기독교 신학",mn:"Христийн теологи",reason_ko:"230은 삼위일체·구원론 등 기독교 신학을 다룹니다.",reason_en:"230 covers Christian theology including the Trinity and salvation.",reason_mn:"230 нь Гурвал нэгдэл, авралын онолыг хамарсан Христийн теологийг хамардаг."},
+  "240":{en:"Christian Moral & Devotional Theology",ko:"기독교 도덕·신앙신학",mn:"Христийн ёс суртахуун",reason_ko:"240은 기독교 윤리·묵상·영성 수련을 다룹니다.",reason_en:"240 covers Christian moral theology and spiritual devotion.",reason_mn:"240 нь Христийн ёс суртахуун, оюун санааны дадлагыг хамардаг."},
+  "250":{en:"Local Christian Church",ko:"지역 교회",mn:"Орон нутгийн чуулган",reason_ko:"250은 지역 교회의 목회·예배·행정을 다룹니다.",reason_en:"250 covers local church ministry, worship, and administration.",reason_mn:"250 нь орон нутгийн чуулганы үйл ажиллагааг хамардаг."},
+  "260":{en:"Social & Ecclesiastical Theology",ko:"사회·교회신학",mn:"Нийгмийн ба сүмийн теологи",reason_ko:"260은 교회 사회 운동·선교·에큐메니즘을 다룹니다.",reason_en:"260 covers social theology and church missions.",reason_mn:"260 нь нийгмийн теологи, сүмийн номлолыг хамардаг."},
+  "270":{en:"History of Christianity",ko:"기독교 역사",mn:"Христийн шашны түүх",reason_ko:"270은 기독교의 역사적 전개와 지리적 확산을 다룹니다.",reason_en:"270 covers the historical development and spread of Christianity.",reason_mn:"270 нь Христийн шашны түүхэн хөгжил, тархалтыг хамардаг."},
+  "280":{en:"Christian Denominations",ko:"기독교 종파",mn:"Христийн шашны урсгалууд",reason_ko:"280은 가톨릭·개신교·정교회 등 기독교 종파를 다룹니다.",reason_en:"280 covers Catholic, Protestant, Orthodox, and other Christian denominations.",reason_mn:"280 нь Католик, Протестант, Православ зэрэг Христийн шашны урсгалуудыг хамардаг."},
+  "290":{en:"Other Religions",ko:"기타 종교",mn:"Бусад шашин",reason_ko:"290은 이슬람·불교·힌두교·유대교 등 기독교 외 종교를 다룹니다.",reason_en:"290 covers Islam, Buddhism, Hinduism, Judaism, and other non-Christian religions.",reason_mn:"290 нь Ислам, Буддизм, Хинду, Иудаизм зэрэг бусад шашнуудыг хамардаг."},
+  // ── 300 사회과학 ──
+  "300":{en:"Social Sciences",ko:"사회과학",mn:"Нийгмийн шинжлэх ухаан",reason_ko:"300번대는 사회학·경제학·정치학·법학·교육학 등 사회를 다루는 주류입니다.",reason_en:"300s covers sociology, economics, political science, law, and education.",reason_mn:"300-аад нь социологи, эдийн засаг, улс төр, хууль зүй, боловсролыг хамардаг."},
+  "310":{en:"Statistics",ko:"통계학",mn:"Статистик",reason_ko:"310은 사회 통계·인구 조사·수치 자료를 다룹니다.",reason_en:"310 covers social statistics, census data, and numerical data.",reason_mn:"310 нь нийгмийн статистик, хүн ам тооллогын мэдээллийг хамардаг."},
+  "320":{en:"Political Science",ko:"정치학",mn:"Улс төр судлал",reason_ko:"320은 국가·정부·권력·정치 체제를 다루는 정치학입니다.",reason_en:"320 covers the state, government, power, and political systems.",reason_mn:"320 нь төр, засгийн газар, эрх мэдэл, улс төрийн системийг судалдаг."},
+  "330":{en:"Economics",ko:"경제학",mn:"Эдийн засаг судлал",reason_ko:"330은 생산·분배·소비 등 경제 현상을 분석하는 경제학입니다.",reason_en:"330 covers production, distribution, and consumption in economics.",reason_mn:"330 нь үйлдвэрлэл, хуваарилалт, хэрэглээний эдийн засгийн судалгааг хамардаг."},
+  "340":{en:"Law",ko:"법학",mn:"Хууль зүй",reason_ko:"340은 헌법·민법·형법 등 법률 전반을 다루는 법학입니다.",reason_en:"340 covers constitutional, civil, and criminal law.",reason_mn:"340 нь үндсэн хууль, иргэний хууль, эрүүгийн хуулийг хамардаг."},
+  "350":{en:"Public Administration & Military Science",ko:"행정학·군사학",mn:"Нийтийн удирдлага",reason_ko:"350은 공공 행정·군사 전략을 다룹니다.",reason_en:"350 covers public administration and military science.",reason_mn:"350 нь нийтийн удирдлага, цэргийн шинжлэх ухааныг хамардаг."},
+  "360":{en:"Social Problems & Services",ko:"사회 문제·복지",mn:"Нийгмийн асуудал ба үйлчилгээ",reason_ko:"360은 빈곤·범죄·복지 서비스 등 사회 문제를 다룹니다.",reason_en:"360 covers poverty, crime, and social welfare services.",reason_mn:"360 нь ядуурал, гэмт хэрэг, нийгмийн халамжийн асуудлыг хамардаг."},
+  "370":{en:"Education",ko:"교육학",mn:"Боловсрол судлал",reason_ko:"370은 교육 이론·학교 행정·교수법 등 교육학을 다룹니다.",reason_en:"370 covers educational theory, school administration, and teaching methods.",reason_mn:"370 нь боловсролын онол, сургуулийн удирдлага, заах арга зүйг хамардаг."},
+  "380":{en:"Commerce, Communications & Transportation",ko:"상업·통신·교통",mn:"Худалдаа ба тээвэр",reason_ko:"380은 무역·통신·교통 인프라를 다룹니다.",reason_en:"380 covers trade, communications, and transportation systems.",reason_mn:"380 нь худалдаа, харилцаа холбоо, тээврийн системийг хамардаг."},
+  "390":{en:"Customs, Etiquette & Folklore",ko:"풍속·예절·민속",mn:"Ёс заншил ба ардын уламжлал",reason_ko:"390은 관습·예절·민속·전통 문화를 다룹니다.",reason_en:"390 covers customs, folklore, etiquette, and traditional culture.",reason_mn:"390 нь заншил, ардын уламжлал, ёс этикетийг хамардаг."},
+  // ── 400 언어 ──
+  "400":{en:"Language",ko:"언어",mn:"Хэл шинжлэл",reason_ko:"400번대는 세계 언어와 언어학 전반을 다루는 주류입니다.",reason_en:"400s covers linguistics and the world's languages.",reason_mn:"400-аад нь дэлхийн хэл, хэл шинжлэлийг хамардаг."},
+  "410":{en:"Linguistics",ko:"언어학",mn:"Хэл шинжлэл (ерөнхий)",reason_ko:"410은 음운론·형태론·통사론 등 언어 구조를 연구합니다.",reason_en:"410 covers phonology, morphology, and syntax.",reason_mn:"410 нь авиа зүй, морфологи, синтаксийг судалдаг."},
+  "420":{en:"English Language",ko:"영어",mn:"Англи хэл",reason_ko:"420은 영어의 문법·어휘·역사를 다룹니다.",reason_en:"420 covers English grammar, vocabulary, and history.",reason_mn:"420 нь англи хэлний дүрэм, үгийн сан, түүхийг хамардаг."},
+  "430":{en:"German Language",ko:"독일어",mn:"Герман хэл",reason_ko:"430은 독일어 관련 자료를 다룹니다.",reason_en:"430 covers the German language.",reason_mn:"430 нь герман хэлийг хамардаг."},
+  "440":{en:"French Language",ko:"프랑스어",mn:"Франц хэл",reason_ko:"440은 프랑스어 관련 자료를 다룹니다.",reason_en:"440 covers the French language.",reason_mn:"440 нь франц хэлийг хамардаг."},
+  "450":{en:"Italian Language",ko:"이탈리아어",mn:"Итали хэл",reason_ko:"450은 이탈리아어 관련 자료를 다룹니다.",reason_en:"450 covers the Italian language.",reason_mn:"450 нь итали хэлийг хамардаг."},
+  "460":{en:"Spanish & Portuguese Languages",ko:"스페인어·포르투갈어",mn:"Испани ба Португал хэл",reason_ko:"460은 스페인어·포르투갈어를 다룹니다.",reason_en:"460 covers Spanish and Portuguese languages.",reason_mn:"460 нь испани ба португал хэлийг хамардаг."},
+  "470":{en:"Latin Language",ko:"라틴어",mn:"Латин хэл",reason_ko:"470은 고대 라틴어를 다룹니다.",reason_en:"470 covers the Latin language.",reason_mn:"470 нь латин хэлийг хамардаг."},
+  "480":{en:"Classical Greek Language",ko:"고대 그리스어",mn:"Эртний Грек хэл",reason_ko:"480은 고대 그리스어를 다룹니다.",reason_en:"480 covers Classical Greek language.",reason_mn:"480 нь эртний Грек хэлийг хамардаг."},
+  "490":{en:"Other Languages",ko:"기타 언어",mn:"Бусад хэл (Монгол гэх мэт)",reason_ko:"490은 한국어·일본어·중국어·몽골어 등 기타 언어를 다룹니다.",reason_en:"490 covers other languages including Korean, Japanese, Chinese, and Mongolian.",reason_mn:"490 нь солонгос, япон, хятад, монгол зэрэг бусад хэлийг хамардаг."},
+  // ── 500 자연과학 ──
+  "500":{en:"Natural Sciences & Mathematics",ko:"자연과학 및 수학",mn:"Байгалийн шинжлэх ухаан ба математик",reason_ko:"500번대는 수학·물리학·화학·생물학 등 자연과학을 다루는 주류입니다.",reason_en:"500s covers mathematics, physics, chemistry, biology, and natural sciences.",reason_mn:"500-аад нь математик, физик, хими, биологи зэрэг байгалийн шинжлэх ухааныг хамардаг."},
+  "510":{en:"Mathematics",ko:"수학",mn:"Математик",reason_ko:"510은 대수·기하·미적분 등 수학 전반을 다룹니다.",reason_en:"510 covers algebra, geometry, calculus, and mathematics in general.",reason_mn:"510 нь алгебр, геометр, математик шинжилгээг хамардаг."},
+  "520":{en:"Astronomy",ko:"천문학",mn:"Одон орон судлал",reason_ko:"520은 별·행성·은하·우주론을 다루는 천문학입니다.",reason_en:"520 covers stars, planets, galaxies, and cosmology.",reason_mn:"520 нь одод, гарагууд, галактик, космологийг судалдаг."},
+  "530":{en:"Physics",ko:"물리학",mn:"Физик",reason_ko:"530은 역학·전자기·열역학·양자역학을 다루는 물리학입니다.",reason_en:"530 covers mechanics, electromagnetism, thermodynamics, and quantum physics.",reason_mn:"530 нь механик, электромагнетизм, дулааны физик, квант физикийг хамардаг."},
+  "540":{en:"Chemistry",ko:"화학",mn:"Хими",reason_ko:"540은 원소·화합물·화학 반응을 다루는 화학입니다.",reason_en:"540 covers elements, compounds, and chemical reactions.",reason_mn:"540 нь элементүүд, нэгдлүүд, химийн урвалуудыг хамардаг."},
+  "550":{en:"Earth Sciences & Geology",ko:"지구과학·지질학",mn:"Дэлхийн шинжлэх ухаан",reason_ko:"550은 지질학·기상학·해양학 등 지구 관련 과학입니다.",reason_en:"550 covers geology, meteorology, and oceanography.",reason_mn:"550 нь геологи, цаг уурын ухаан, далайн шинжлэх ухааныг хамардаг."},
+  "560":{en:"Fossils & Prehistoric Life",ko:"고생물학",mn:"Чулуужсан амьтан",reason_ko:"560은 화석과 선사시대 생물을 다루는 고생물학입니다.",reason_en:"560 covers paleontology, fossils, and prehistoric life.",reason_mn:"560 нь палеонтологи, чулуужсан амьтан, эртний амьдралыг хамардаг."},
+  "570":{en:"Biology",ko:"생물학",mn:"Биологи",reason_ko:"570은 세포·유전·진화 등 생명 현상을 다루는 생물학입니다.",reason_en:"570 covers cells, genetics, evolution, and life sciences.",reason_mn:"570 нь эс, генетик, хувьсал зэрэг амьдралын шинжлэх ухааныг хамардаг."},
+  "580":{en:"Plants (Botany)",ko:"식물학",mn:"Ургамал судлал",reason_ko:"580은 식물의 구조·분류·생태를 다루는 식물학입니다.",reason_en:"580 covers plant structure, classification, and ecology.",reason_mn:"580 нь ургамлын бүтэц, ангилал, экологийг судалдаг."},
+  "590":{en:"Animals (Zoology)",ko:"동물학",mn:"Амьтан судлал",reason_ko:"590은 동물의 분류·행동·생태를 다루는 동물학입니다.",reason_en:"590 covers animal classification, behavior, and ecology.",reason_mn:"590 нь амьтдын ангилал, зан үйл, экологийг судалдаг."},
+  // ── 600 기술 ──
+  "600":{en:"Technology & Applied Sciences",ko:"기술 및 응용과학",mn:"Технологи ба хэрэглээний шинжлэх ухаан",reason_ko:"600번대는 의학·공학·농업·건축 등 응용 기술을 다루는 주류입니다.",reason_en:"600s covers medicine, engineering, agriculture, and applied sciences.",reason_mn:"600-аад нь анагаах ухаан, инженерчлэл, хөдөө аж ахуй зэрэг хэрэглээний шинжлэх ухааныг хамардаг."},
+  "610":{en:"Medicine & Health",ko:"의학·보건",mn:"Анагаах ухаан",reason_ko:"610은 인체·질병·의료·공중보건을 다루는 의학입니다.",reason_en:"610 covers human health, disease, medicine, and public health.",reason_mn:"610 нь хүний эрүүл мэнд, өвчин, эмнэлгийн тусламжийг хамардаг."},
+  "620":{en:"Engineering",ko:"공학",mn:"Инженерчлэл",reason_ko:"620은 기계·전기·토목·화학 공학 등 공학 전반입니다.",reason_en:"620 covers mechanical, electrical, civil, and chemical engineering.",reason_mn:"620 нь механик, цахилгаан, иргэний, химийн инженерчлэлийг хамардаг."},
+  "630":{en:"Agriculture",ko:"농업",mn:"Хөдөө аж ахуй",reason_ko:"630은 작물 재배·가축 사육·농업 기술을 다룹니다.",reason_en:"630 covers crop farming, animal husbandry, and agricultural technology.",reason_mn:"630 нь таримал тариалан, мал аж ахуй, хөдөө аж ахуйн технологийг хамардаг."},
+  "640":{en:"Home Economics & Family Living",ko:"가정학",mn:"Гэрийн аж ахуй",reason_ko:"640은 요리·가정 관리·영양·가족생활을 다룹니다.",reason_en:"640 covers cooking, home management, nutrition, and family life.",reason_mn:"640 нь хоол хийх, гэрийн менежмент, хоол тэжээл, гэр бүлийн амьдралыг хамардаг."},
+  "650":{en:"Management & Public Relations",ko:"경영학·홍보",mn:"Менежмент",reason_ko:"650은 경영·마케팅·회계·비서학 등을 다룹니다.",reason_en:"650 covers management, marketing, accounting, and office practices.",reason_mn:"650 нь менежмент, маркетинг, нягтлан бодох бүртгэлийг хамардаг."},
+  "660":{en:"Chemical Engineering",ko:"화학공학",mn:"Химийн инженерчлэл",reason_ko:"660은 화학 제조·석유화학·식품 화학 공정을 다룹니다.",reason_en:"660 covers chemical manufacturing, petrochemicals, and food chemistry.",reason_mn:"660 нь химийн үйлдвэрлэл, нефть хими, хүнсний химийн процессийг хамардаг."},
+  "670":{en:"Manufacturing",ko:"제조업",mn:"Үйлдвэрлэл",reason_ko:"670은 금속·목재·섬유 등 제조업 공정을 다룹니다.",reason_en:"670 covers manufacturing processes for metals, wood, and textiles.",reason_mn:"670 нь металл, мод, нэхмэл зэрэг үйлдвэрлэлийн процессийг хамардаг."},
+  "680":{en:"Manufacture for Specific Uses",ko:"특수 제조업",mn:"Тусгай зориулалтын үйлдвэрлэл",reason_ko:"680은 가구·의류·인쇄 등 특수 용도 제조를 다룹니다.",reason_en:"680 covers furniture, clothing, printing, and specialty manufacturing.",reason_mn:"680 нь тавилга, хувцас, хэвлэх зэрэг тусгай зориулалтын үйлдвэрлэлийг хамардаг."},
+  "690":{en:"Construction of Buildings",ko:"건축학",mn:"Барилгын шинжлэх ухаан",reason_ko:"690은 건물 설계·시공·건축 재료를 다룹니다.",reason_en:"690 covers building design, construction, and materials.",reason_mn:"690 нь барилгын зураг төсөл, барилга угсралт, материалыг хамардаг."},
+  // ── 700 예술 ──
+  "700":{en:"Arts & Recreation",ko:"예술 및 오락",mn:"Урлаг ба зугаа цэнгэл",reason_ko:"700번대는 미술·음악·스포츠·공연예술 등 예술과 오락을 다루는 주류입니다.",reason_en:"700s covers fine arts, music, sports, and performing arts.",reason_mn:"700-аад нь дүрслэх урлаг, хөгжим, спорт, тоглоом урлагийг хамардаг."},
+  "710":{en:"Area Planning & Landscape Architecture",ko:"도시계획·조경",mn:"Газар нутгийн төлөвлөлт",reason_ko:"710은 도시 계획·조경 설계를 다룹니다.",reason_en:"710 covers urban planning and landscape architecture.",reason_mn:"710 нь хот төлөвлөлт, ландшафтын архитектурыг хамардаг."},
+  "720":{en:"Architecture",ko:"건축 예술",mn:"Архитектур",reason_ko:"720은 건축 역사·이론·설계를 예술적 관점에서 다룹니다.",reason_en:"720 covers architecture as an art form — history, theory, and design.",reason_mn:"720 нь архитектурын түүх, онол, зураг төслийг урлагийн үүднээс хамардаг."},
+  "730":{en:"Sculpture, Ceramics & Metalwork",ko:"조각·도예·금속공예",mn:"Уран баримал",reason_ko:"730은 조각·도예·금속 공예 등 입체 예술을 다룹니다.",reason_en:"730 covers sculpture, ceramics, and metalwork.",reason_mn:"730 нь уран баримал, шаазан эдлэл, металл урлалыг хамардаг."},
+  "740":{en:"Drawing & Decorative Arts",ko:"소묘·공예",mn:"Зурах ба чимэглэлийн урлаг",reason_ko:"740은 소묘·디자인·장식 예술을 다룹니다.",reason_en:"740 covers drawing, design, and decorative arts.",reason_mn:"740 нь зурах, дизайн, чимэглэлийн урлагийг хамардаг."},
+  "750":{en:"Painting",ko:"회화",mn:"Уран зураг",reason_ko:"750은 회화의 역사·기법·화가를 다룹니다.",reason_en:"750 covers painting history, techniques, and painters.",reason_mn:"750 нь уран зургийн түүх, арга техник, зурагчдыг хамардаг."},
+  "760":{en:"Graphic Arts & Printmaking",ko:"그래픽 아트·판화",mn:"График урлаг",reason_ko:"760은 판화·그래픽 디자인·인쇄 예술을 다룹니다.",reason_en:"760 covers printmaking, graphic design, and print arts.",reason_mn:"760 нь хэвлэмэл зураг, график дизайн, хэвлэлийн урлагийг хамардаг."},
+  "770":{en:"Photography & Computer Art",ko:"사진·컴퓨터 아트",mn:"Гэрэл зураг",reason_ko:"770은 사진술·디지털 아트를 다룹니다.",reason_en:"770 covers photography and digital/computer art.",reason_mn:"770 нь гэрэл зургийн урлаг, дижитал урлагийг хамардаг."},
+  "780":{en:"Music",ko:"음악",mn:"Хөгжим",reason_ko:"780은 음악 이론·역사·악기·작곡을 다룹니다.",reason_en:"780 covers music theory, history, instruments, and composition.",reason_mn:"780 нь хөгжмийн онол, түүх, зэмсэг, зохиол бүтээлийг хамардаг."},
+  "790":{en:"Sports, Games & Entertainment",ko:"스포츠·게임·오락",mn:"Спорт ба тоглоом",reason_ko:"790은 스포츠·게임·공연·대중오락을 다룹니다.",reason_en:"790 covers sports, games, performing arts, and popular entertainment.",reason_mn:"790 нь спорт, тоглоом, тоглоом урлаг, олон нийтийн зугаа цэнгэлийг хамардаг."},
+  // ── 800 문학 ──
+  "800":{en:"Literature",ko:"문학",mn:"Уран зохиол",reason_ko:"800번대는 세계 모든 언어의 문학 작품을 포괄하는 주류입니다.",reason_en:"800s covers all literary works across languages and forms.",reason_mn:"800-аад нь дэлхийн бүх хэлний уран зохиолын бүтээлийг хамардаг."},
+  "810":{en:"American Literature in English",ko:"영어권 미국 문학",mn:"Америкийн уран зохиол",reason_ko:"810은 영어로 쓰인 미국 문학 전반을 다룹니다.",reason_en:"810 covers American literature written in English.",reason_mn:"810 нь англи хэлээр бичсэн Америкийн уран зохиолыг хамардаг."},
+  "811":{en:"American poetry in English",ko:"미국 시",mn:"Америкийн яруу найраг",reason_ko:"811은 미국 시인의 영시를 분류합니다.",reason_en:"811 covers poetry by American authors in English.",reason_mn:"811 нь Америкийн яруу найргийг ангилдаг."},
+  "812":{en:"American drama in English",ko:"미국 희곡",mn:"Америкийн жүжиг",reason_ko:"812는 미국 작가의 희곡을 분류합니다.",reason_en:"812 covers drama by American authors in English.",reason_mn:"812 нь Америкийн жүжгийг ангилдаг."},
+  "813":{en:"American fiction in English",ko:"미국 소설",mn:"Америкийн роман",reason_ko:"813은 미국 소설을 분류합니다.",reason_en:"813 covers prose fiction by American authors written in English.",reason_mn:"813 нь Америкийн романыг ангилдаг."},
+  "814":{en:"American essays in English",ko:"미국 수필",mn:"Америкийн эссэ",reason_ko:"814는 미국 수필을 분류합니다.",reason_en:"814 covers essays by American authors in English.",reason_mn:"814 нь Америкийн эссэг ангилдаг."},
+  "815":{en:"American speeches in English",ko:"미국 연설",mn:"Америкийн илтгэл",reason_ko:"815는 미국 연설문을 분류합니다.",reason_en:"815 covers speeches by American authors in English.",reason_mn:"815 нь Америкийн илтгэлийг ангилдаг."},
+  "816":{en:"American letters in English",ko:"미국 서간문",mn:"Америкийн захидал",reason_ko:"816은 미국 서간문을 분류합니다.",reason_en:"816 covers letters by American authors.",reason_mn:"816 нь Америкийн захидал харилцааг ангилдаг."},
+  "817":{en:"American humor & satire in English",ko:"미국 유머·풍자",mn:"Америкийн хошин шог",reason_ko:"817은 미국 유머·풍자 문학을 분류합니다.",reason_en:"817 covers American humor and satire in English.",reason_mn:"817 нь Америкийн хошин шог уран зохиолыг ангилдаг."},
+  "818":{en:"American miscellaneous writings",ko:"미국 기타 문학",mn:"Америкийн бусад уран зохиол",reason_ko:"818은 일기·회고록 등 기타 미국 영어 문학을 포괄합니다.",reason_en:"818 covers miscellaneous American writings including diaries and memoirs.",reason_mn:"818 нь өдрийн тэмдэглэл, дурсамж зэрэг бусад Америкийн уран зохиолыг хамардаг."},
+  "820":{en:"English & Old English Literature",ko:"영국 문학",mn:"Английн уран зохиол",reason_ko:"820은 영국 작가의 문학을 분류합니다.",reason_en:"820 covers literature by British authors.",reason_mn:"820 нь Британийн зохиолчдын уран зохиолыг ангилдаг."},
+  "821":{en:"English poetry",ko:"영국 시",mn:"Английн яруу найраг",reason_ko:"821은 영국 시를 분류합니다.",reason_en:"821 covers poetry by British authors.",reason_mn:"821 нь Британийн яруу найргийг ангилдаг."},
+  "822":{en:"English drama",ko:"영국 희곡",mn:"Английн жүжиг",reason_ko:"822는 셰익스피어를 포함한 영국 희곡을 분류합니다.",reason_en:"822 covers drama by British authors, including Shakespeare.",reason_mn:"822 нь Шекспир зэрэг Британийн жүжгийг ангилдаг."},
+  "823":{en:"English fiction",ko:"영국 소설",mn:"Английн роман",reason_ko:"823은 해리포터·셜록홈즈 등 영국 소설을 분류합니다.",reason_en:"823 covers British fiction — including Harry Potter and Sherlock Holmes.",reason_mn:"823 нь Харри Поттер, Шерлок Холмс зэрэг Британийн романыг ангилдаг."},
+  "824":{en:"English essays",ko:"영국 수필",mn:"Английн эссэ",reason_ko:"824는 영국 수필을 분류합니다.",reason_en:"824 covers essays by British authors.",reason_mn:"824 нь Британийн эссэг ангилдаг."},
+  "828":{en:"English miscellaneous writings",ko:"영국 기타 문학",mn:"Английн бусад уран зохиол",reason_ko:"828은 기타 영국 문학을 분류합니다.",reason_en:"828 covers miscellaneous British writings.",reason_mn:"828 нь бусад Британийн уран зохиолыг ангилдаг."},
+  "830":{en:"German Literature",ko:"독일 문학",mn:"Германы уран зохиол",reason_ko:"830은 독일어 문학을 분류합니다.",reason_en:"830 covers literature in German.",reason_mn:"830 нь герман хэл дээрх уран зохиолыг ангилдаг."},
+  "833":{en:"German fiction",ko:"독일 소설",mn:"Германы роман",reason_ko:"833은 독일 소설을 분류합니다.",reason_en:"833 covers German fiction.",reason_mn:"833 нь Германы романыг ангилдаг."},
+  "840":{en:"French Literature",ko:"프랑스 문학",mn:"Францын уран зохиол",reason_ko:"840은 프랑스어 문학을 분류합니다.",reason_en:"840 covers literature in French.",reason_mn:"840 нь франц хэл дээрх уран зохиолыг ангилдаг."},
+  "843":{en:"French fiction",ko:"프랑스 소설",mn:"Францын роман",reason_ko:"843은 레미제라블 등 프랑스 소설을 분류합니다.",reason_en:"843 covers French fiction including Les Misérables.",reason_mn:"843 нь Ле Мизерабль зэрэг Францын романыг ангилдаг."},
+  "860":{en:"Spanish & Portuguese Literature",ko:"스페인·포르투갈 문학",mn:"Испани уран зохиол",reason_ko:"860은 스페인어·포르투갈어 문학을 분류합니다.",reason_en:"860 covers literature in Spanish and Portuguese.",reason_mn:"860 нь испани ба португал хэл дээрх уран зохиолыг ангилдаг."},
+  "863":{en:"Spanish fiction",ko:"스페인 소설",mn:"Испанийн роман",reason_ko:"863은 돈키호테 등 스페인 소설을 분류합니다.",reason_en:"863 covers Spanish fiction including Don Quixote.",reason_mn:"863 нь Дон Кихот зэрэг Испанийн романыг ангилдаг."},
+  "871":{en:"Latin poetry",ko:"라틴 시",mn:"Латин яруу найраг",reason_ko:"871은 오비디우스 등 라틴 시를 분류합니다.",reason_en:"871 covers Latin poetry including Ovid.",reason_mn:"871 нь Овид зэрэг латин яруу найргийг ангилдаг."},
+  "880":{en:"Classical Greek Literature",ko:"고대 그리스 문학",mn:"Эртний Грекийн уран зохиол",reason_ko:"880은 호메로스 등 고대 그리스 문학을 분류합니다.",reason_en:"880 covers Classical Greek literature including Homer.",reason_mn:"880 нь Гомер зэрэг эртний Грекийн уран зохиолыг ангилдаг."},
+  "883":{en:"Greek epic poetry",ko:"그리스 서사시",mn:"Грекийн тууль",reason_ko:"883은 일리아드·오디세이 등 그리스 서사시를 분류합니다.",reason_en:"883 covers Greek epic poetry including the Iliad and Odyssey.",reason_mn:"883 нь Илиад, Одиссей зэрэг Грекийн туульсыг ангилдаг."},
+  "890":{en:"Other Literatures",ko:"기타 언어 문학",mn:"Бусад уран зохиол",reason_ko:"890은 한국어·일본어·몽골어 등 기타 언어 문학을 포괄합니다.",reason_en:"890 covers literature in other languages including Korean, Japanese, and Mongolian.",reason_mn:"890 нь солонгос, япон, монгол зэрэг бусад хэлний уран зохиолыг хамардаг."},
+  "891":{en:"East Indo-European & Celtic literatures",ko:"동유럽·러시아 문학",mn:"Зүүн Европ ба Орос уран зохиол",reason_ko:"891은 러시아·동유럽 문학을 분류합니다. 도스토옙스키·톨스토이가 여기에 해당합니다.",reason_en:"891 covers Russian and East European literature — including Dostoevsky and Tolstoy.",reason_mn:"891 нь Достоевский, Толстой зэрэг Орос ба Зүүн Европын уран зохиолыг ангилдаг."},
+  "895":{en:"Literatures of East & Southeast Asia",ko:"동아시아 문학",mn:"Зүүн Азийн уран зохиол",reason_ko:"895는 한국·일본·중국 문학을 분류합니다.",reason_en:"895 covers East and Southeast Asian literatures.",reason_mn:"895 нь Солонгос, Япон, Хятадын уран зохиолыг ангилдаг."},
+  // ── 900 역사 ──
+  "900":{en:"History & Geography",ko:"역사 및 지리",mn:"Түүх ба газарзүй",reason_ko:"900번대는 세계사·지리·전기 등 역사를 다루는 주류입니다.",reason_en:"900s covers world history, geography, and biography.",reason_mn:"900-аад нь дэлхийн түүх, газарзүй, намтрыг хамардаг."},
+  "910":{en:"Geography & Travel",ko:"지리학·여행",mn:"Газарзүй ба аялал",reason_ko:"910은 지리·탐험·여행기를 다룹니다.",reason_en:"910 covers geography, exploration, and travel writing.",reason_mn:"910 нь газарзүй, судалгааны аялал, аялалын тэмдэглэлийг хамардаг."},
+  "920":{en:"Biography & Genealogy",ko:"전기·계보",mn:"Намтар ба угийн бичиг",reason_ko:"920은 인물 전기·회고록·계보를 다룹니다.",reason_en:"920 covers biography, autobiography, and genealogy.",reason_mn:"920 нь намтар, өөрийн намтар, угийн бичгийг хамардаг."},
+  "930":{en:"History of Ancient World",ko:"고대 역사",mn:"Эртний дэлхийн түүх",reason_ko:"930은 이집트·그리스·로마 등 고대 세계 역사를 다룹니다.",reason_en:"930 covers ancient history including Egypt, Greece, and Rome.",reason_mn:"930 нь Египет, Грек, Ромын эртний дэлхийн түүхийг хамардаг."},
+  "940":{en:"History of Europe",ko:"유럽 역사",mn:"Европын түүх",reason_ko:"940은 유럽의 역사 전반을 다룹니다.",reason_en:"940 covers the history of Europe.",reason_mn:"940 нь Европын түүхийг хамардаг."},
+  "950":{en:"History of Asia",ko:"아시아 역사",mn:"Азийн түүх",reason_ko:"950은 중국·일본·한국·몽골 등 아시아 역사를 다룹니다.",reason_en:"950 covers Asian history including China, Japan, Korea, and Mongolia.",reason_mn:"950 нь Хятад, Япон, Солонгос, Монголын азийн түүхийг хамардаг."},
+  "960":{en:"History of Africa",ko:"아프리카 역사",mn:"Африкийн түүх",reason_ko:"960은 아프리카 역사를 다룹니다.",reason_en:"960 covers the history of Africa.",reason_mn:"960 нь Африкийн түүхийг хамардаг."},
+  "970":{en:"History of North America",ko:"북아메리카 역사",mn:"Хойд Америкийн түүх",reason_ko:"970은 미국·캐나다·멕시코 등 북아메리카 역사를 다룹니다.",reason_en:"970 covers the history of North America including the US, Canada, and Mexico.",reason_mn:"970 нь АНУ, Канад, Мексикийн хойд Америкийн түүхийг хамардаг."},
+  "980":{en:"History of South America",ko:"남아메리카 역사",mn:"Өмнөд Америкийн түүх",reason_ko:"980은 브라질·아르헨티나 등 남아메리카 역사를 다룹니다.",reason_en:"980 covers the history of South America.",reason_mn:"980 нь Өмнөд Америкийн түүхийг хамардаг."},
+  "990":{en:"History of Other Areas",ko:"기타 지역 역사",mn:"Бусад бүс нутгийн түүх",reason_ko:"990은 오세아니아·극지방 등 기타 지역 역사를 다룹니다.",reason_en:"990 covers the history of Oceania, polar regions, and other areas.",reason_mn:"990 нь Номхон далайн арлууд, туйлын бүс нутгийн түүхийг хамардаг."},
+};
+
+// ═══════════════════════════════════════
+// 책 데이터 — 000~900 전 주류 포함
+// ═══════════════════════════════════════
+const BOOKS = [
+  // 000
+  {title:"The Information",title_ko:"인포메이션",author:"James Gleick",isbn:"9780375423727",section:"020",desc_ko:"정보의 역사와 이론, 도서관·암호·언어를 가로지르는 지식의 대서사",desc_en:"A sweeping history of information theory spanning libraries, codes, and language.",desc_mn:"Мэдээллийн түүх, онол — номын сан, код, хэлний тухай өргөн судалгаа"},
+  {title:"Weapons of Math Destruction",title_ko:"대량살상 수학무기",author:"Cathy O'Neil",isbn:"9780553418811",section:"070",desc_ko:"알고리즘과 빅데이터가 사회에 미치는 부작용을 분석",desc_en:"How big data and hidden algorithms reinforce inequality and threaten democracy.",desc_mn:"Алгоритм ба том өгөгдлийн нийгэмд үзүүлэх сөрөг нөлөөг шинжилсэн ном"},
+  // 100
+  {title:"Thinking, Fast and Slow",title_ko:"생각에 관한 생각",author:"Daniel Kahneman",isbn:"9780374533557",section:"150",desc_ko:"인간의 직관적 사고와 이성적 사고 두 체계를 심리학적으로 분석",desc_en:"A Nobel economist explores the two systems that drive the way we think.",desc_mn:"Хүний хоёр сэтгэхүйн систем — зөн совин ба оюун ухааны тухай шинжилгээ"},
+  {title:"Meditations",title_ko:"명상록",author:"Marcus Aurelius",isbn:"9780140449334",section:"180",desc_ko:"로마 황제가 쓴 스토아 철학의 고전적 자기성찰록",desc_en:"Personal writings of a Roman emperor practicing Stoic philosophy.",desc_mn:"Ромын эзэн хааны бичсэн стоик философийн сонгодог бүтээл"},
+  {title:"Man's Search for Meaning",title_ko:"죽음의 수용소에서",author:"Viktor Frankl",isbn:"9780807014271",section:"150",desc_ko:"나치 강제수용소 경험에서 도출한 실존적 의미 탐구",desc_en:"A psychiatrist's search for meaning amid the horrors of the Holocaust.",desc_mn:"Нацистын лагерийн туршлагаас гаргаж авсан амьдралын утга учрын тухай ном"},
+  // 200
+  {title:"The World's Religions",title_ko:"세계의 종교",author:"Huston Smith",isbn:"9780061631898",section:"290",desc_ko:"힌두교·불교·이슬람·기독교 등 세계 주요 종교를 비교 소개",desc_en:"A classic comparative study of the world's major religious traditions.",desc_mn:"Хинду, Будда, Ислам, Христийн шашин зэрэг дэлхийн шашнуудыг харьцуулсан ном"},
+  {title:"Siddhartha",title_ko:"싯다르타",author:"Hermann Hesse",isbn:"9780553208849",section:"290",desc_ko:"붓다의 깨달음에서 영감을 받아 쓴 영적 성장 소설",desc_en:"A novel of spiritual self-discovery inspired by the Buddha's journey.",desc_mn:"Буддын гэгээрлээс санаа авч бичсэн оюун санааны өсөлтийн роман"},
+  // 300
+  {title:"Freakonomics",title_ko:"괴짜 경제학",author:"Levitt & Dubner",isbn:"9780060731335",section:"330",desc_ko:"경제학 시각으로 범죄·교육·스포츠 등 사회 현상을 분석",desc_en:"An economist applies economic thinking to crime, education, and society.",desc_mn:"Эдийн засгийн үүднээс нийгмийн үзэгдлүүдийг шинжилсэн ном"},
+  {title:"The Tipping Point",title_ko:"티핑 포인트",author:"Malcolm Gladwell",isbn:"9780316346627",section:"360",desc_ko:"사회적 변화가 폭발적으로 확산되는 임계점을 분석",desc_en:"How small ideas can spark social epidemics and major change.",desc_mn:"Нийгмийн өөрчлөлт яагаад тодорхой нэг цэгт тэсрэн тархдагийг шинжилсэн ном"},
+  {title:"Pedagogy of the Oppressed",title_ko:"페다고지",author:"Paulo Freire",isbn:"9780826412768",section:"370",desc_ko:"억압받는 이들을 위한 비판적 교육학의 고전",desc_en:"A foundational text of critical pedagogy and liberatory education.",desc_mn:"Дарлагдсан хүмүүст зориулсан шүүмжлэлт боловсролын онолын сонгодог бүтээл"},
+  // 400
+  {title:"The Language Instinct",title_ko:"언어 본능",author:"Steven Pinker",isbn:"9780060976514",section:"410",desc_ko:"인간이 언어를 습득하는 본능적 능력을 진화론적으로 설명",desc_en:"Language is a biological instinct — Pinker's landmark argument.",desc_mn:"Хүн хэл эзэмших төрөлхийн чадварыг хувьслын үүднээс тайлбарласан ном"},
+  {title:"Eats, Shoots & Leaves",title_ko:"먹고 쏘고 떠나다",author:"Lynne Truss",isbn:"9781592400874",section:"420",desc_ko:"영어 문장 부호의 올바른 사용법을 유쾌하게 설명한 책",desc_en:"A witty defense of punctuation and clear English writing.",desc_mn:"Англи хэлний цэг таслалын зөв хэрэглээг хөгжилтэйгээр тайлбарласан ном"},
+  // 500
+  {title:"A Brief History of Time",title_ko:"시간의 역사",author:"Stephen Hawking",isbn:"9780553380163",section:"520",desc_ko:"블랙홀·빅뱅·시간의 화살 등 우주론을 대중적으로 설명",desc_en:"A landmark book on cosmology: black holes, the Big Bang, and the arrow of time.",desc_mn:"Хар нүх, Их тэсрэлт, цаг хугацааны тухай космологийг олон нийтэд тайлбарласан ном"},
+  {title:"The Selfish Gene",title_ko:"이기적 유전자",author:"Richard Dawkins",isbn:"9780199291151",section:"570",desc_ko:"유전자 중심의 진화론을 통해 생명의 본질을 설명",desc_en:"Evolution seen from the gene's perspective — a revolution in biology.",desc_mn:"Генийн төвтэй хувьслын онолоор амьдралын мөн чанарыг тайлбарласан ном"},
+  {title:"Surely You're Joking, Mr. Feynman!",title_ko:"파인만 씨 농담도 잘 하시네!",author:"Richard Feynman",isbn:"9780393316049",section:"530",desc_ko:"노벨 물리학상 수상자 파인만의 유쾌한 과학 모험 이야기",desc_en:"Adventures of a Nobel physicist — curious, irreverent, brilliant.",desc_mn:"Нобелийн физикийн шагналтан Фейнманы хөгжилтэй шинжлэх ухааны адал явдал"},
+  // 600
+  {title:"The Emperor of All Maladies",title_ko:"암: 만병의 황제의 역사",author:"Siddhartha Mukherjee",isbn:"9781439107959",section:"610",desc_ko:"암의 역사와 의학적 투쟁을 다룬 퓰리처상 수상 의학서",desc_en:"A Pulitzer-winning biography of cancer and humanity's struggle against it.",desc_mn:"Хорт хавдрын түүх ба эмнэлгийн тэмцлийг дүрсэлсэн Пулитцерийн шагналтай ном"},
+  {title:"The Omnivore's Dilemma",title_ko:"잡식동물의 딜레마",author:"Michael Pollan",isbn:"9780143038580",section:"640",desc_ko:"현대 식품 산업과 먹거리의 윤리를 탐구",desc_en:"A journey through the American food chain from industrial farm to dinner table.",desc_mn:"Орчин үеийн хүнсний үйлдвэрлэл ба хоол хүнсний ёс зүйг судалсан ном"},
+  {title:"Guns, Germs, and Steel",title_ko:"총, 균, 쇠",author:"Jared Diamond",isbn:"9780393317558",section:"630",desc_ko:"지리·환경·기술이 문명의 흥망을 결정짓는 방식을 분석",desc_en:"Why geography and biology — not race — determined civilizational dominance.",desc_mn:"Газар зүй, орчин, технологи нь соёл иргэншлийн өсөлт уналтыг хэрхэн тодорхойлдгийг шинжилсэн ном"},
+  // 700
+  {title:"The Story of Art",title_ko:"서양미술사",author:"E.H. Gombrich",isbn:"9780714832470",section:"750",desc_ko:"선사시대부터 현대까지 미술사를 체계적으로 서술한 입문서",desc_en:"The world's most famous introduction to art history.",desc_mn:"Эртний үеэс өнөөг хүртэлх урлагийн түүхийг системтэйгээр тайлбарласан ном"},
+  {title:"The Rest Is Noise",title_ko:"나머지는 소음이다",author:"Alex Ross",isbn:"9780312427719",section:"780",desc_ko:"20세기 현대 음악의 역사와 주요 작곡가들을 탐구",desc_en:"An acclaimed cultural history of 20th-century music.",desc_mn:"20-р зууны орчин үеийн хөгжмийн түүх ба гол хөгжмийн зохиолчдыг судалсан ном"},
+  {title:"Open",title_ko:"오픈",author:"Andre Agassi",isbn:"9780307388407",section:"790",desc_ko:"테니스 전설 아가시의 스포츠 인생과 내면의 갈등을 담은 자서전",desc_en:"Tennis legend Agassi's raw memoir about sport, identity, and inner conflict.",desc_mn:"Теннисийн тамирчин Агасигийн спортын амьдрал ба дотоод зөрчлийн тухай намтар"},
+  // 800
+  {title:"Harry Potter and the Sorcerer's Stone",title_ko:"해리 포터와 마법사의 돌",author:"J.K. Rowling",isbn:"9780439708180",section:"823",desc_ko:"영국 마법사 학교 호그와트를 배경으로 한 소년 해리 포터의 모험",desc_en:"A boy wizard enters Hogwarts School of Witchcraft and Wizardry.",desc_mn:"Хогвартс шидийн сургуульд элссэн залуу шидтэн Харри Поттерийн адал явдал"},
+  {title:"To Kill a Mockingbird",title_ko:"앵무새 죽이기",author:"Harper Lee",isbn:"9780061935466",section:"813",desc_ko:"미국 남부의 인종차별을 어린 소녀의 시선으로 담아낸 소설",desc_en:"A young girl witnesses racial injustice in 1930s Alabama.",desc_mn:"1930-аад оны Алабама мужид арьсны ялгаварлалтай тулгарсан охины нүдээр харуулсан роман"},
+  {title:"Romeo and Juliet",title_ko:"로미오와 줄리엣",author:"William Shakespeare",isbn:"9780743477116",section:"822",desc_ko:"원수 집안 출신의 두 젊은이가 나누는 비극적 사랑 이야기",desc_en:"Two young lovers from rival families meet a tragic fate in Verona.",desc_mn:"Дайсагнасан гэр бүлээс гаралтай хоёр залуу хайрлалцаж гунигт төгсгөлд хүрэх тухай"},
+  {title:"Crime and Punishment",title_ko:"죄와 벌",author:"Fyodor Dostoevsky",isbn:"9780140449136",section:"891",desc_ko:"가난한 대학생 라스콜니코프가 살인 후 겪는 심리적 죄책감",desc_en:"A destitute student commits murder and grapples with guilt and torment.",desc_mn:"Ядуу оюутан хүн алж, сэтгэл зүйн зовлон шаналал амсах тухай роман"},
+  {title:"Les Misérables",title_ko:"레 미제라블",author:"Victor Hugo",isbn:"9780140444308",section:"843",desc_ko:"19세기 프랑스를 배경으로 전과자 장발장의 구원을 다룬 대서사시",desc_en:"An ex-convict seeks redemption across 19th-century France.",desc_mn:"19-р зууны Францад шоронгоос гарсан хүн аврал эрж явах тухай"},
+  {title:"Don Quixote",title_ko:"돈키호테",author:"Miguel de Cervantes",isbn:"9780142437230",section:"863",desc_ko:"기사 소설에 빠진 노인이 편력 기사가 되어 모험을 떠나는 풍자 소설",desc_en:"An idealistic nobleman sets out as a knight-errant in this classic satire.",desc_mn:"Рыцарийн туульд дурласан өвгөн аян дайнд гарах тухай хошин зохиол"},
+  {title:"The Diary of a Young Girl",title_ko:"안네의 일기",author:"Anne Frank",isbn:"9780553296983",section:"818",desc_ko:"나치 점령 네덜란드에서 은신한 유대인 소녀의 실제 일기",desc_en:"The real diary of a Jewish girl hiding from the Nazis in Amsterdam.",desc_mn:"Нацистын эзэлсэн Нидерландад нуугдаж амьдарсан еврей охины жинхэнэ өдрийн тэмдэглэл"},
+  {title:"The Iliad",title_ko:"일리아드",author:"Homer",isbn:"9780140447941",section:"883",desc_ko:"트로이 전쟁을 배경으로 한 고대 그리스의 서사시",desc_en:"Ancient Greek epic poem about the Trojan War and Achilles's wrath.",desc_mn:"Трояны дайны тухай эртний Грекийн тууль"},
+  // 900
+  {title:"Sapiens",title_ko:"사피엔스",author:"Yuval Noah Harari",isbn:"9780062316097",section:"950",desc_ko:"인류의 탄생부터 현재까지 역사 전체를 조망하는 대담한 서술",desc_en:"A bold retelling of the entire history of humankind.",desc_mn:"Хүн төрөлхтний үүслээс өнөөг хүртэлх бүх түүхийг дүгнэсэн зоримог бүтээл"},
+  {title:"The Diary of Anne Frank",title_ko:"안네 프랑크의 일기",author:"Anne Frank",isbn:"9780553296983",section:"940",desc_ko:"제2차 세계대전 중 유럽 역사의 단면을 담은 일기",desc_en:"A diary capturing European history during World War II.",desc_mn:"Дэлхийн 2-р дайны үеийн Европын түүхийн хэсгийг тусгасан өдрийн тэмдэглэл"},
+  {title:"Into Thin Air",title_ko:"희박한 공기 속으로",author:"Jon Krakauer",isbn:"9780385494786",section:"910",desc_ko:"1996년 에베레스트 등반 재난을 생존자의 시각으로 기록",desc_en:"A survivor's account of the disastrous 1996 Everest expedition.",desc_mn:"1996 оны Эверестийн гамшгийг амд үлдсэн хүний нүдээр бичсэн нон-фикшн ном"},
+];
+// 섹션 → 강 → 주류 계층 구조
+function getClass(num){ return num[0]+'00'; }
+function getDiv(num){ return num[0]+num[1]+'0'; }
+function getSec(num){ return num; }
+
+// 강 목록 (주류별)
+const DIVS = {};
+const CLASSES = ['800','810','820','830','840','860','880','890'];
+Object.keys(DDC_ALL).forEach(k => {
+  if(k.length===3 && k[2]==='0' && k!=='800'){
+    const cls = k[0]+'00';
+    if(!DIVS[cls]) DIVS[cls]=[];
+    DIVS[cls].push(k);
+  }
+});
+
+// 요목 목록 (강별)
+const SECS = {};
+Object.keys(DDC_ALL).forEach(k => {
+  if(k.length===3 && k[2]!=='0'){
+    const div = k[0]+k[1]+'0';
+    if(!SECS[div]) SECS[div]=[];
+    SECS[div].push(k);
+  }
+});
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let lang='ko', mode='drill', totalQ=5;
+let questions=[], currentQ=0, correctCount=0, streak=0;
+let currentStep=0; // 0=class, 1=div, 2=sec
+let stepAnswers=[]; // 각 단계 선택 결과
+let questionCorrect=true; // 이 문제 전체 정답 여부
+let resultLog=[];
+
+// ═══════════════════════════════════════
+// LANG
+// ═══════════════════════════════════════
+function setLang(l){
+  lang=l;
+  ['ko','en','mn'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===l));
+  applyStrings();
+
+  // 게임 화면이 열려 있으면 즉시 재렌더링
+  const gameScreen=document.getElementById('screen-game');
+  if(gameScreen.classList.contains('active') && questions.length>0){
+    // 책 카드 설명 언어 변경
+    renderBookCard();
+    // 힌트 텍스트 변경
+    const hintKey=mode==='drill'
+      ?(currentStep===0?'hintClass':currentStep===1?'hintDiv':'hintSec')
+      :'hintQuick';
+    document.getElementById('step-hint').textContent=T(hintKey);
+    // 선택지 버튼 이름 변경 (아직 답 안 고른 상태만)
+    const btns=document.querySelectorAll('.choice-btn');
+    btns.forEach(btn=>{
+      const numEl=btn.querySelector('.choice-num');
+      if(!numEl) return;
+      const num=numEl.textContent;
+      const d=DDC_ALL[num];
+      if(d) btn.innerHTML=`<span class="choice-num">${num}</span>${getName(d)}`;
+    });
+    // 확정된 단계(step-done) 이름 변경
+    document.querySelectorAll('.step-done').forEach(el=>{
+      const numEl=el.querySelector('.step-done-num');
+      const nameEl=el.querySelector('.step-done-name');
+      if(!numEl||!nameEl) return;
+      const d=DDC_ALL[numEl.textContent.trim()];
+      if(d) nameEl.textContent=getName(d);
+    });
+    // 오답 설명이 표시 중이면 다시 렌더
+    const we=document.getElementById('wrong-explain');
+    if(we.classList.contains('show')){
+      const answerEl=document.getElementById('we-answer');
+      if(answerEl){
+        const match=answerEl.textContent.match(/(\d{3})/);
+        if(match) showWrongExplain(match[1], currentStep);
+      }
+    }
+    // 점수 레이블
+    document.getElementById('lbl-correct').textContent=T('correct');
+    document.getElementById('lbl-streak').textContent=T('streak');
+    // 다음 버튼 텍스트
+    const nb=document.getElementById('next-btn');
+    if(nb.classList.contains('show'))
+      nb.textContent=T('nextBtn');
+  }
+
+  // 결과 화면이 열려 있으면 레이블만 변경
+  const resultScreen=document.getElementById('screen-result');
+  if(resultScreen.classList.contains('active')){
+    document.getElementById('txt-result-label').textContent=T('resultLabel');
+    document.getElementById('result-total').textContent=`/ ${totalQ} ${T('resultSuffix')}`;
+    document.getElementById('txt-retry').textContent=T('retry');
+    document.getElementById('txt-home').textContent=T('home');
+  }
+}
+function T(k){ return (S[lang]&&S[lang][k])||S['en'][k]||''; }
+function setText(id,k){ const el=document.getElementById(id); if(el) el.textContent=T(k); }
+function getName(d){ return lang==='ko'?d.ko:lang==='en'?d.en:d.mn; }
+function getReason(d){ return lang==='ko'?d.reason_ko:lang==='en'?d.reason_en:d.reason_mn; }
+function applyStrings(){
+  setText('txt-subtitle','subtitle'); setText('txt-mode-label','modeLabel');
+  setText('txt-mode-drill-name','modeDrillName'); setText('txt-mode-drill-desc','modeDrillDesc');
+  setText('txt-mode-quick-name','modeQuickName'); setText('txt-mode-quick-desc','modeQuickDesc');
+  setText('txt-qcount-label','qcountLabel'); setText('txt-start','start');
+  setText('lbl-correct','correct'); setText('lbl-streak','streak');
+  setText('txt-result-label','resultLabel'); setText('txt-retry','retry');
+  setText('txt-home','home'); setText('footer-credit','footer');
+}
+
+// ═══════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════
+function selectMode(m){
+  mode=m;
+  document.getElementById('card-mode-drill').classList.toggle('selected',m==='drill');
+  document.getElementById('card-mode-quick').classList.toggle('selected',m==='quick');
+}
+function selectQ(n){
+  totalQ=n;
+  document.querySelectorAll('.q-btn').forEach(b=>b.classList.toggle('selected',parseInt(b.textContent)===n));
+}
+
+// ═══════════════════════════════════════
+// GAME
+// ═══════════════════════════════════════
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]; } return b; }
+
+function startGame(){
+  questions=shuffle(BOOKS).slice(0,totalQ);
+  currentQ=0; correctCount=0; streak=0; resultLog=[];
+  showScreen('game');
+  loadQuestion();
+}
+
+function loadQuestion(){
+  currentStep=0; stepAnswers=[]; questionCorrect=true;
+  document.getElementById('progress-fill').style.width=((currentQ/totalQ)*100)+'%';
+  document.getElementById('q-counter').textContent=`Q ${currentQ+1} / ${totalQ}`;
+  document.getElementById('score-correct').textContent=correctCount;
+  document.getElementById('score-streak').textContent=streak;
+  document.getElementById('steps-wrap').innerHTML='';
+  document.getElementById('wrong-explain').className='wrong-explain';
+  document.getElementById('next-btn').className='next-btn';
+  renderBookCard();
+  renderStep();
+}
+
+function renderBookCard(){
+  const book=questions[currentQ];
+  const desc=lang==='ko'?book.desc_ko:lang==='en'?book.desc_en:book.desc_mn;
+  const cardEl=document.getElementById('book-card');
+
+  // 일단 placeholder로 먼저 렌더
+  cardEl.innerHTML=`
+    <div class="book-lbl">${T('bookLbl')}</div>
+    <div class="book-inner">
+      <div class="book-cover" id="cover-wrap"><span class="book-cover-placeholder">📖</span></div>
+      <div class="book-info">
+        <div class="book-title">${book.title}</div>
+        <div class="book-title-ko">${book.title_ko}</div>
+        <div class="book-author">${book.author}</div>
+        <div class="book-desc">${desc}</div>
+      </div>
+    </div>`;
+
+  // Google Books API로 표지 비동기 로드
+  if(book.isbn){
+    fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}&fields=items(volumeInfo/imageLinks)`)
+      .then(r=>r.json())
+      .then(data=>{
+        const img=data?.items?.[0]?.volumeInfo?.imageLinks;
+        const url=img?.thumbnail||img?.smallThumbnail;
+        if(url){
+          const wrap=document.getElementById('cover-wrap');
+          if(wrap) wrap.innerHTML=`<img src="${url.replace('http://','https://')}" alt="cover" onerror="this.parentElement.innerHTML='<span class=\\'book-cover-placeholder\\'>📖</span>'">`;
+        }
+      })
+      .catch(()=>{});
+  }
+}
+
+function renderStep(){
+  const book=questions[currentQ];
+  const sec=book.section;
+  const correctClass=getClass(sec);
+  const correctDiv=getDiv(sec);
+
+  let hint='', choices=[], correctNum='';
+
+  if(mode==='drill'){
+    if(currentStep===0){
+      hint=T('hintClass');
+      correctNum=correctClass;
+      // 주류 선택지: 800 포함 4개 랜덤
+      const others=shuffle(['000','100','200','300','400','500','600','700','900']).slice(0,3);
+      choices=shuffle([correctClass,...others]);
+    } else if(currentStep===1){
+      hint=T('hintDiv');
+      correctNum=correctDiv;
+      // 해당 주류의 강 선택지
+      const divList=Object.keys(DDC_ALL).filter(k=>k.length===3&&k[2]==='0'&&k!==correctClass&&k[0]===sec[0]);
+      const others=shuffle(divList).slice(0,3);
+      choices=shuffle([correctDiv,...others]);
+    } else {
+      hint=T('hintSec');
+      correctNum=sec;
+      // 해당 강의 요목 선택지
+      const secList=Object.keys(DDC_ALL).filter(k=>k.length===3&&k[2]!=='0'&&k[0]===sec[0]&&k[1]===sec[1]&&k!==sec);
+      const others=shuffle(secList).slice(0,3);
+      if(others.length<3){
+        // 같은 주류 다른 강에서 보충
+        const extra=Object.keys(DDC_ALL).filter(k=>k.length===3&&k[2]!=='0'&&k[0]===sec[0]&&k!==sec&&!others.includes(k));
+        others.push(...shuffle(extra).slice(0,3-others.length));
+      }
+      choices=shuffle([sec,...others.slice(0,3)]);
+    }
+  } else {
+    // QUICK 모드: 바로 섹션
+    hint=T('hintQuick');
+    correctNum=sec;
+    const others=shuffle(Object.keys(DDC_ALL).filter(k=>k.length===3&&k[2]!=='0'&&k!==sec)).slice(0,3);
+    choices=shuffle([sec,...others]);
+  }
+
+  // 선택지 렌더
+  const choicesEl=document.getElementById('choices');
+  choicesEl.innerHTML='';
+  choices.forEach(num=>{
+    const d=DDC_ALL[num];
+    const name=d?getName(d):'?';
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.innerHTML=`<span class="choice-num">${num}</span>${name}`;
+    btn.onclick=()=>selectAnswer(btn,num,correctNum,currentStep);
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById('step-hint').textContent=hint;
+  document.getElementById('wrong-explain').className='wrong-explain';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function selectAnswer(btn,chosen,correct,step){
+  document.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+  const isCorrect=chosen===correct;
+
+  if(isCorrect){
+    btn.classList.add('correct');
+    // 확정 단계 추가
+    addStepDone(step, correct);
+    document.getElementById('wrong-explain').className='wrong-explain';
+
+    // 다음 단계 or 문제 종료
+    const isFinalStep=(mode==='quick')||(mode==='drill'&&(
+      (step===2)||(step===1&&!SECS[correct])||( step===0&&!DIVS[getClass(correct)])
+    ));
+
+    if(mode==='drill'&&step<2&&!isFinalStep){
+      currentStep++;
+      // 잠깐 후 다음 단계 렌더
+      setTimeout(()=>{
+        renderStep();
+      },600);
+    } else {
+      // 문제 완료
+      if(questionCorrect){ correctCount++; streak++; }
+      document.getElementById('score-correct').textContent=correctCount;
+      document.getElementById('score-streak').textContent=streak;
+      resultLog.push({title:questions[currentQ].title_ko,hit:questionCorrect});
+      const nb=document.getElementById('next-btn');
+      nb.textContent=currentQ+1<totalQ?T('nextBtnFinal'):T('retry');
+      nb.className='next-btn show';
+    }
+  } else {
+    btn.classList.add('wrong');
+    questionCorrect=false;
+    streak=0;
+    // 정답 하이라이트
+    document.querySelectorAll('.choice-btn').forEach(b=>{
+      const numEl=b.querySelector('.choice-num');
+      if(numEl&&numEl.textContent===correct) b.classList.add('correct');
+    });
+    // 오답 설명 표시
+    showWrongExplain(correct, step);
+    const nb=document.getElementById('next-btn');
+    nb.textContent=T('nextBtn');
+    nb.className='next-btn show';
+  }
+}
+
+function addStepDone(step, num){
+  const d=DDC_ALL[num];
+  const name=d?getName(d):'';
+  const labels=[T('stepLabelClass'),T('stepLabelDiv'),T('stepLabelSec')];
+  const label=mode==='quick'?T('stepLabelSec'):labels[step];
+  const wrap=document.getElementById('steps-wrap');
+  const div=document.createElement('div');
+  div.className='step-done';
+  div.setAttribute('data-num', num);
+  div.innerHTML=`<div class="step-done-check">✓</div>
+    <div class="step-done-num">${num}</div>
+    <div class="step-done-label">${label}</div>
+    <div class="step-done-name">${name}</div>`;
+  wrap.appendChild(div);
+}
+
+function showWrongExplain(correct, step){
+  const d=DDC_ALL[correct];
+  if(!d) return;
+  const we=document.getElementById('wrong-explain');
+  document.getElementById('we-title').textContent=T('wrongTitle');
+  // 틀린 이유 설명
+  let body='';
+  if(step===0) body=lang==='ko'?'주류는 세 자리 번호의 첫째 자리로 결정됩니다. ':lang==='en'?'The main class is determined by the first digit of the DDC number. ':'Үндсэн ангилал нь DDC дугаарын эхний цифрээр тодорхойлогдоно. ';
+  else if(step===1) body=lang==='ko'?'강(Division)은 두 번째 자리로 결정됩니다. ':lang==='en'?'The division is determined by the second digit. ':'Хэсэг нь хоёр дахь цифрээр тодорхойлогдоно. ';
+  else body=lang==='ko'?'요목(Section)은 세 번째 자리로 결정됩니다. ':lang==='en'?'The section is the full three-digit number. ':'Дэд хэсэг нь гурван оронтой бүхэл тоогоор тодорхойлогдоно. ';
+  body+=getReason(d);
+  document.getElementById('we-body').textContent=body;
+  document.getElementById('we-answer').textContent=(lang==='ko'?'정답: ':lang==='en'?'Answer: ':'Зөв хариулт: ')+correct+' — '+getName(d);
+  we.className='wrong-explain show';
+}
+
+function nextStep(){
+  // 오답 후 다음 단계 or 다음 문제
+  const book=questions[currentQ];
+  const sec=book.section;
+  const isAnswered=document.querySelectorAll('.choice-btn.correct, .choice-btn.wrong').length>0;
+  const wasCorrect=document.querySelector('.choice-btn.wrong')===null;
+
+  if(!wasCorrect){
+    // 오답 후: 다음 단계 or 다음 문제
+    if(mode==='drill'&&currentStep<2){
+      currentStep++;
+      document.getElementById('wrong-explain').className='wrong-explain';
+      document.getElementById('next-btn').className='next-btn';
+      renderStep();
+    } else {
+      resultLog.push({title:book.title_ko,hit:false});
+      currentQ++;
+      if(currentQ>=totalQ) showResult();
+      else loadQuestion();
+    }
+  } else {
+    currentQ++;
+    if(currentQ>=totalQ) showResult();
+    else loadQuestion();
+  }
+}
+
+// ═══════════════════════════════════════
+// RESULT
+// ═══════════════════════════════════════
+function showResult(){
+  document.getElementById('progress-fill').style.width='100%';
+  showScreen('result');
+  document.getElementById('txt-result-label').textContent=T('resultLabel');
+  document.getElementById('result-score').textContent=correctCount;
+  document.getElementById('result-total').textContent=`/ ${totalQ} ${T('resultSuffix')}`;
+  document.getElementById('txt-retry').textContent=T('retry');
+  document.getElementById('txt-home').textContent=T('home');
+  const barsEl=document.getElementById('result-bars');
+  barsEl.innerHTML='';
+  resultLog.forEach(r=>{
+    const d=document.createElement('div'); d.className='rbi';
+    d.innerHTML=`<span class="rbi-num" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</span>
+      <div class="rbi-bar-wrap"><div class="rbi-bar ${r.hit?'hit':'miss'}" style="width:${r.hit?100:28}%"></div></div>
+      <span class="rbi-mark ${r.hit?'hit':'miss'}">${r.hit?'✓':'✗'}</span>`;
+    barsEl.appendChild(d);
+  });
+}
+function retryGame(){ startGame(); }
+function goHome(){ showScreen('home'); }
+function showScreen(n){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+n).classList.add('active'); }
+
+// INIT
+applyStrings();
+</script>
+</body>
+</html>
